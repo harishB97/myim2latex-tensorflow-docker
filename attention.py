@@ -9,6 +9,8 @@ import data_loaders
 import time
 import os
 
+save_model = True
+
 BATCH_SIZE      = 20
 EMB_DIM         = 80
 ENC_DIM         = 256
@@ -16,7 +18,7 @@ DEC_DIM         = ENC_DIM*2
 NUM_FEATS_START = 64
 D               = NUM_FEATS_START*8
 V               = 502
-NB_EPOCHS       = 50
+NB_EPOCHS       = 1
 H               = 20
 W               = 50
 
@@ -34,7 +36,7 @@ target_seqs = seqs[:,1:]
 emb_seqs = tflib.ops.Embedding('Embedding',V,EMB_DIM,input_seqs)
 
 ctx = tflib.network.im2latex_cnn(X,NUM_FEATS_START,True)
-out,state = tflib.ops.FreeRunIm2LatexAttention('AttLSTM',emb_seqs,ctx,EMB_DIM,ENC_DIM,DEC_DIM,D,H,W)
+out,state = tflib.ops.im2latexAttention('AttLSTM',emb_seqs,ctx,EMB_DIM,ENC_DIM,DEC_DIM,D,H,W)
 logits = tflib.ops.Linear('MLP.1',out,DEC_DIM,V)
 predictions = tf.argmax(tf.nn.softmax(logits[:,-1]),axis=1)
 
@@ -131,7 +133,8 @@ sess = tf.Session(config=tf.ConfigProto(intra_op_parallelism_threads=8))
 init = tf.global_variables_initializer()
 # init = tf.initialize_all_variables()
 sess.run(init)
-saver = tf.train.Saver()
+
+# writer = tf.summary.FileWriter('./graphs', graph=sess.graph)
 # saver.restore(sess,'./weights_best.ckpt')
 ## start the tensorflow QueueRunner's
 # tf.train.start_queue_runners(sess=sess)
@@ -150,20 +153,26 @@ for i in xrange(i,NB_EPOCHS):
     iter=0
     costs=[]
     times=[]
-    itr = data_loaders.data_iterator('train', BATCH_SIZE)
-    for train_img,train_seq,train_mask in itr:
-        iter += 1
-        start = time.time()
-        _ , _loss = sess.run([train_step,loss],feed_dict={X:train_img,seqs:train_seq,mask:train_mask,learn_rate:lr})
-        # _ , _loss = sess.run([train_step,loss],feed_dict={X:train_img,seqs:train_seq,mask:train_mask})
-
-        times.append(time.time()-start)
-        costs.append(_loss)
-        if iter%100==0:
-            print "Iter: %d (Epoch %d)"%(iter,i+1)
-            print "\tMean cost: ",np.mean(costs)
-            print "\tMean time: ",np.mean(times)
-
+    itr = data_loaders.data_iterator('/content/myim2latex-tensorflow-docker/train', BATCH_SIZE)
+    try:  
+        for train_img,train_seq,train_mask in itr:
+            # print train_img.shape
+            iter += 1
+            start = time.time()
+            _ , _loss = sess.run([train_step,loss],feed_dict={X:train_img,seqs:train_seq,mask:train_mask,learn_rate:lr})
+            # _ , _loss = sess.run([train_step,loss],feed_dict={X:train_img,seqs:train_seq,mask:train_mask})
+            print loss
+            times.append(time.time()-start)
+            costs.append(_loss)
+            if iter >= 3:
+              break
+            if iter%3==0:
+                print "Iter: %d (Epoch %d)"%(iter,i+1)
+                print "\tMean cost: ",np.mean(costs)
+                print "\tMean time: ",np.mean(times)
+    except IOError:
+      print IOError
+      continue
     print "\n\nEpoch %d Completed!"%(i+1)
     print "\tMean train cost: ",np.mean(costs)
     print "\tMean train perplexity: ",np.mean(map(lambda x: np.power(np.e,x), costs))
@@ -178,3 +187,13 @@ for i in xrange(i,NB_EPOCHS):
     print "\n\n"
 
 #sess.run([train_step,loss],feed_dict={X:np.random.randn(32,1,256,512),seqs:np.random.randint(0,107,(32,40)),mask:np.random.randint(0,2,(32,40))})
+
+print np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()])
+
+if save_model:
+  saver = tf.train.Saver()
+  saver.save(sess,'savedmodel/tensorflowModel.ckpt')
+  tf.train.write_graph(sess.graph.as_graph_def(), 'savedmodel/', 'tensorflowModel.pbtxt', as_text=True)
+
+# writer.flush()
+# writer.close()
