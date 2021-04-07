@@ -13,7 +13,8 @@ def data_iterator(set='train',batch_size = 32):
         set - 'train','valid','test' sets
         batch_size - integer (Usually 32,64,128, etc.)
     '''
-    train_dict = np.load(set+'_buckets.npy').tolist()
+    # changed
+    train_dict = np.load(set+'_buckets.npy', allow_pickle=True).tolist()
     print "Length of %s data: "%set,np.sum([len(train_dict[x]) for x in train_dict.keys()])
 
     for keys in train_dict.keys():
@@ -24,7 +25,8 @@ def data_iterator(set='train',batch_size = 32):
             imgs = []
             batch_forms = []
             for x,y in train_sublist:
-                imgs.append(np.asarray(Image.open('./images_processed/'+x).convert('YCbCr'))[:,:,0][:,:,None])
+                # changed
+                imgs.append(np.asarray(Image.open('/content/myim2latex-tensorflow-docker/im2markup/data/sample/images_processed/'+x).convert('YCbCr'))[:,:,0][:,:,None])
                 batch_forms.append(y)
             imgs = np.asarray(imgs,dtype=np.float32).transpose(0,3,1,2)
             lens = [len(x) for x in batch_forms]
