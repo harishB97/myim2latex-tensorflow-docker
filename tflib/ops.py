@@ -193,7 +193,7 @@ def conv2d(
                 norms = tf.sqrt(tf.reduce_sum(tf.square(filters), reduction_indices=[0,1,2]))
                 filters = filters * (target_norms / norms)
 
-        out = tf.nn.conv2d(input, filters, strides=[1, 1, stride, stride], padding=pad, data_format='NCHW')
+        out = tf.nn.conv2d(input, filters, strides=[1, stride, stride, 1], padding=pad, data_format='NHWC')
 
         if bias:
             b = tflib.param(
@@ -201,10 +201,10 @@ def conv2d(
                 np.zeros(num_filters,dtype=np.float32)
             )
 
-            out = tf.nn.bias_add(out,b,data_format='NCHW')
+            out = tf.nn.bias_add(out,b,data_format='NHWC')
 
         if batchnorm:
-            out = tf.contrib.layers.batch_norm(inputs=out,scope=scope,is_training=is_training,data_format='NCHW')
+            out = tf.contrib.layers.batch_norm(inputs=out,scope=scope,is_training=is_training,data_format='NHWC')
 
         return out
 
@@ -218,7 +218,7 @@ def max_pool(
     Max pooling operation with kernel size k and stride s on input with NCHW data format
 
     :parameters:
-        l_input: input in NCHW data format
+        l_input: input in NHWC data format
         k: tuple of int, or int ; kernel size
         s: tuple of int, or int ; stride value
     """
@@ -235,8 +235,8 @@ def max_pool(
     else:
         s1 = s[0]
         s2 = s[1]
-    return tf.nn.max_pool(l_input, ksize=[1, 1, k1, k2], strides=[1, 1, s1, s2],
-                          padding='SAME', name=name, data_format='NCHW')
+    return tf.nn.max_pool(l_input, ksize=[1, k1, k2, 1], strides=[1, s1, s2, 1],
+                          padding='SAME', name=name, data_format='NHWC')
 
 def norm(
     name,
@@ -497,7 +497,8 @@ def im2latexAttention(
         W - int; Maximum width of feature grid
     """
 
-    V = tf.transpose(ctx,[0,2,3,1]) # (B, H, W, D)
+    # V = tf.transpose(ctx,[0,2,3,1]) # (B, H, W, D)
+    V = ctx
     V_cap = []
     batch_size = tf.shape(ctx)[0]
     count=0
@@ -515,7 +516,7 @@ def im2latexAttention(
 
     def fn(prev_out,i):
     # for i in xrange(H):
-        return tflib.ops.BiLSTM(name+'.BiLSTMEncoder',V[:,i],D,ENC_DIM,h0_i_1[:,i],h0_i_2[:,i])
+        return tflib.ops.BiLSTM(name+'.BiLSTMEncoder',V[0:batch_size,i],D,ENC_DIM,h0_i_1[0:batch_size,i],h0_i_2[0:batch_size,i])
 
     V_cap = tf.scan(fn,tf.range(tf.shape(V)[1]), initializer=tf.placeholder(shape=(None,None,2*ENC_DIM),dtype=tf.float32))
 
