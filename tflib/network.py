@@ -72,20 +72,30 @@ def vgg16(X,num_feats=64):
 def im2latex_cnn(X, num_feats, bn, train_mode=True):
     X = X-128.
     X = X/128.
-
+    # V = tf.transpose(ctx,[0,2,3,1]) # (B, H, W, D)
+    # X -> NCHW
+    X = tf.transpose(X,[0,2,3,1]) # X -> NHWC
     X = tf.nn.relu(tflib.ops.conv2d('conv1', X, 3, 1, 1, num_feats, pad = 'SAME', bias=False)) 
+    # X = tf.transpose(X,[0,2,3,1]) # X -> NHWC
     X = tflib.ops.max_pool('pool1', X, k=2, s=2)
+    # X = tf.transpose(X,[0,3,1,2]) # X -> NCHW
 
     X = tf.nn.relu(tflib.ops.conv2d('conv2', X, 3, 1, num_feats, num_feats*2, pad = 'SAME', bias=False))
+    # X = tf.transpose(X,[0,2,3,1]) # X -> NHWC
     X = tflib.ops.max_pool('pool2', X, k=2, s=2)
+    # X = tf.transpose(X,[0,3,1,2]) # X -> NCHW
 
     X = tf.nn.relu(tflib.ops.conv2d('conv3', X, 3, 1, num_feats*2, num_feats*4,  batchnorm=bn, is_training=train_mode, pad = 'SAME', bias=False))
 
     X = tf.nn.relu(tflib.ops.conv2d('conv4', X, 3, 1, num_feats*4, num_feats*4, pad = 'SAME', bias=False))
+    # X = tf.transpose(X,[0,2,3,1]) # X -> NHWC
     X = tflib.ops.max_pool('pool4', X, k=(1,2), s=(1,2))
+    # X = tf.transpose(X,[0,3,1,2]) # X -> NCHW
 
     X = tf.nn.relu(tflib.ops.conv2d('conv5', X, 3, 1, num_feats*4, num_feats*8, batchnorm=bn, is_training=train_mode, pad = 'SAME', bias=False))
+    # X = tf.transpose(X,[0,2,3,1]) # X -> NHWC
     X = tflib.ops.max_pool('pool5', X, k=(2,1), s=(2,1))
+    # X = tf.transpose(X,[0,3,1,2]) # X -> NCHW
 
     X = tf.nn.relu(tflib.ops.conv2d('conv6', X, 3, 1, num_feats*8, num_feats*8, batchnorm=bn, is_training=train_mode, pad = 'SAME', bias=False))
 
