@@ -5,6 +5,7 @@ import numpy as np
 import re
 import glob
 from PIL import Image
+import os
 
 def data_iterator(set='train',batch_size = 32):
     '''
@@ -14,8 +15,13 @@ def data_iterator(set='train',batch_size = 32):
         batch_size - integer (Usually 32,64,128, etc.)
     '''
     # changed
-    train_dict = np.load(set+'_buckets.npy', allow_pickle=True).tolist()
-    print "Length of %s data: "%set,np.sum([len(train_dict[x]) for x in train_dict.keys()])
+    train_dict = np.load(set+'_new_buckets.npy', allow_pickle=True).tolist()
+    # print "train_dict"
+    # print train_dict.keys()
+    # # print "Length of %s data: "%set,np.sum([len(train_dict[x]) for x in train_dict.keys()])
+    # available_imgs = []
+    # for file_ in os.path.listdir(r'/content/myim2latex-tensorflow-docker/im2markup/data/sample/images_processed'):
+    #   available_imgs.append(file_)
 
     for keys in train_dict.keys():
         train_list = train_dict[keys]
@@ -26,8 +32,15 @@ def data_iterator(set='train',batch_size = 32):
             batch_forms = []
             for x,y in train_sublist:
                 # changed
-                imgs.append(np.asarray(Image.open('/content/myim2latex-tensorflow-docker/im2markup/data/sample/images_processed/'+x).convert('YCbCr'))[:,:,0][:,:,None])
-                batch_forms.append(y)
+                try:
+                  imgs.append(np.asarray(Image.open('/content/myim2latex-tensorflow-docker/im2markup/data/sample/images_processed/'+x).convert('YCbCr'))[:,:,0][:,:,None])
+                  batch_forms.append(y)
+                except IOError:
+                  print IOError
+                  pass
+                
+            if len(imgs) < batch_size:
+              print len(imgs)
             imgs = np.asarray(imgs,dtype=np.float32).transpose(0,3,1,2)
             lens = [len(x) for x in batch_forms]
 
