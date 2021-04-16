@@ -18,7 +18,7 @@ DEC_DIM         = ENC_DIM*2
 NUM_FEATS_START = 64
 D               = NUM_FEATS_START*8
 V               = 502
-NB_EPOCHS       = 1
+NB_EPOCHS       = 10
 H               = 20
 W               = 50
 
@@ -60,7 +60,7 @@ def predict(set='test',batch_size=1,visualize=True):
         assert (batch_size==1), "Batch size should be 1 for visualize mode"
     import random
     # f = np.load('train_list_buckets.npy').tolist()
-    f = np.load(set+'_buckets.npy').tolist()
+    f = np.load(set+'_new_buckets.npy').tolist()
     random_key = random.choice(f.keys())
     #random_key = (160,40)
     f = f[random_key]
@@ -161,23 +161,22 @@ for i in xrange(i,NB_EPOCHS):
             start = time.time()
             _ , _loss = sess.run([train_step,loss],feed_dict={X:train_img,seqs:train_seq,mask:train_mask,learn_rate:lr})
             # _ , _loss = sess.run([train_step,loss],feed_dict={X:train_img,seqs:train_seq,mask:train_mask})
-            print loss
+            # print _loss
             times.append(time.time()-start)
             costs.append(_loss)
-            if iter >= 3:
-              break
-            if iter%3==0:
+            # if iter >= 3:
+            #   break
+            if iter%100==0:
                 print "Iter: %d (Epoch %d)"%(iter,i+1)
                 print "\tMean cost: ",np.mean(costs)
                 print "\tMean time: ",np.mean(times)
     except IOError:
-      print IOError
-      continue
+      pass
     print "\n\nEpoch %d Completed!"%(i+1)
     print "\tMean train cost: ",np.mean(costs)
     print "\tMean train perplexity: ",np.mean(map(lambda x: np.power(np.e,x), costs))
     print "\tMean time: ",np.mean(times)
-    val_loss, val_perp = score('valid',BATCH_SIZE)
+    val_loss, val_perp = score('/content/myim2latex-tensorflow-docker/valid',BATCH_SIZE)
     if val_perp < best_perp:
         best_perp = val_perp
         saver.save(sess,"weights_best.ckpt")
