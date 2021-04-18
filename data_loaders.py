@@ -31,6 +31,7 @@ def data_iterator(set='train',batch_size = 32):
             imgs = []
             batch_forms = []
             for x,y in train_sublist:
+                x = x[:-4] + '.jpg'
                 # changed
                 try:
                   imgs.append(np.asarray(Image.open('/content/myim2latex-tensorflow-docker/im2markup/data/sample/images_processed/'+x).convert('YCbCr'))[:,:,0][:,:,None])
